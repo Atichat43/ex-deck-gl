@@ -27,5 +27,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "deck.gl": "^7.1.10",
+    "react-map-gl": "^5.0.7"
   }
 }
