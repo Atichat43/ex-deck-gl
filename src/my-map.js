@@ -15,67 +15,30 @@ const initialViewState = {
   bearing: 0
 };
 
-const gridCellLayer = new GridCellLayer({
-  id: 'grid-cell-layer',
-  data: [{point: [-122.41669, 37.7853], value: 100}, {point: [-122.42669, 37.7853], value: 50}],
-  visible: true,
-  pickable: true,
-  extruded: false,
-  cellSize: 250,
-  getPosition: d => d.point,
-  getFillColor: d => [48, 128, d.value * 255, 255],
-})
-
-const scatterplotLayer = new ScatterplotLayer({
-  id: 'scatterplot-layer',
-  data: [
-    {name: 'Colma', passengers: 200, coordinates: [-122.466233, 37.684638]},
-    {name: 'Civic Center', passengers: 500, coordinates: [-122.413756,37.779528]},
-  ],
-  visible: false,
-  pickable: true,
-  opacity: 1,
-  stroked: true,
-  filled: true,
-  radiusScale: 10,
-  radiusMinPixels: 1,
-  radiusMaxPixels: 100,
-  lineWidthMinPixels: 1,
-  getPosition: d => d.coordinates,
-  getRadius: d => Math.sqrt(d.passengers),
-  getFillColor: d => [255, 140, 0],
-  getLineColor: d => [0, 0, 0],
-})
-
-const LAYERS = [gridCellLayer, scatterplotLayer]
-
-const getLayerOptions = (layers=[]) => {
-  console.log(layers)
-  return layers.map(layer => {
-    return { id: layer.id, label: layer.id, visible: layer.props.visible }
-  })
-}
-
-const renderLayers = renderIds => {
-  const layers = LAYERS.filter(layer => renderIds.find(r => r.id === layer.id).visible)
-  console.log(layers[0].props)
-  // layers[0].setProps({visible: false})
-  return layers
-}
-
 class MyMap extends Component {
   state = {
     mapStyle: "mapbox://styles/mapbox/light-v9",
-    renderIds: []
+    renderableLayer: [],
+    visibleLayer: {
+      gridCellLayer: true,
+      scatterplotLayer: true,
+    },
+    reloading: true
   }
 
   componentDidMount() {
-    const renderIds = getLayerOptions(LAYERS)
-    this.setState(() => ({renderIds}))
+    const layers = [
+      { id: 'grid-cell-layer', label: 'Grid cell layer' },
+      { id: 'scatterplot-layer', label: 'Scatter plot layer' }
+    ]
+    // const renderableLayer = this.getLayerOptions(layers)
+    this.setState(() => ({renderableLayer: layers, reloading: false}))
   }
 
-  handleLoadStaticMap = () => {
-    console.log('handleLoadStaticMap')
+  getLayerOptions = (layers=[]) => {
+    return layers.map(layer => {
+      return { id: layer.id, label: layer.id }
+    })
   }
 
   handleUpdateConfig = config => {
@@ -84,54 +47,102 @@ class MyMap extends Component {
     const styles = staticMap.getStyle()
 
     styles.layers.filter(layer => {
-      if (slugFilter(layer) !== null) 
-        staticMap.setLayoutProperty(layer.id, 'visibility', 
-          config.value ? 'visible': 'none')
+      if (slugFilter(layer) !== null)
+        staticMap.setLayoutProperty(layer.id, 'visibility',
+          config.value ? 'visible' : 'none')
     })
   }
-
-  handleUpdateLayer = newOption => {
-    // const newLayers = layers.filter(layer => layer.id === newOption.id ? newOption.value : true)
-    // this.renderDeckLayer(newLayers)
-  }
-
-  // renderDeckLayer = (layers = []) => {
-  //   const { deck } = this.deckGl
-  //   deck.setProps({layers})
-  // }
 
   handleChangeMapStyle = styleId => {
     const { staticMap } = this
     const mapStyle = DEFAULT_MAP_STYLES.find(style => style.id === styleId).url
-    this.setState(() => ({mapStyle}))
+    this.setState(() => ({ mapStyle }))
     staticMap.setStyle(mapStyle)
   }
 
+  handleUpdateLayer = layerOption => {
+    this.setState(() => ({reloading: true}))
+    switch (layerOption.id) {
+      case 'grid-cell-layer':
+        this.setState(state => {state.visibleLayer.gridCellLayer = layerOption.value })
+        break;
+
+      case 'scatterplot-layer':
+        this.setState(state => {state.visibleLayer.scatterplotLayer = layerOption.value })
+        break;
+
+      default:
+        break;
+    }
+    this.setState(() => ({reloading: false}))
+  }
+
+  renderLayers = () => {
+    const { visibleLayer } = this.state
+    const layers =  [
+      visibleLayer.gridCellLayer ?
+        new GridCellLayer({
+          id: 'grid-cell-layer',
+          data: [{ point: [-122.41669, 37.7853], value: 100 }, { point: [-122.42669, 37.7853], value: 50 }],
+          visible: true,
+          pickable: true,
+          extruded: false,
+          cellSize: 250,
+          getPosition: d => d.point,
+          getFillColor: d => [48, 128, d.value * 255, 255],
+        }) : null,
+      visibleLayer.scatterplotLayer ?
+        new ScatterplotLayer({
+          id: 'scatterplot-layer',
+          data: [
+            { name: 'Colma', passengers: 200, coordinates: [-122.466233, 37.684638] },
+            { name: 'Civic Center', passengers: 500, coordinates: [-122.413756, 37.779528] },
+          ],
+          pickable: true,
+          opacity: 1,
+          stroked: true,
+          filled: true,
+          radiusScale: 10,
+          radiusMinPixels: 1,
+          radiusMaxPixels: 100,
+          lineWidthMinPixels: 1,
+          getPosition: d => d.coordinates,
+          getRadius: d => Math.sqrt(d.passengers),
+          getFillColor: d => [255, 140, 0],
+          getLineColor: d => [0, 0, 0],
+        }) : null,
+    ]
+    return layers.length !== 0 ? layers : []
+  }
+
   render() {
-    const { mapStyle, renderIds } = this.state
+    const { mapStyle, renderableLayer, reloading } = this.state
+    const { renderLayers } = this
 
     return (
       <Fragment>
-          <LayerManager 
-            _updateConfig={this.handleUpdateConfig} 
-            _changeMapStyle={this.handleChangeMapStyle}
-            _updateLayer={this.handleUpdateLayer}
-            layerOptions={getLayerOptions(LAYERS)}>
-        </LayerManager>
-        <DeckGL
-          ref={ref => { this.deckGl = ref }}
-          initialViewState={initialViewState}
-          controller={true}
-          layers={renderIds.length !== 0 && renderLayers(renderIds)}
-        >
-          <StaticMap
-            ref={ref => { this.staticMap = ref && ref.getMap() }}
-            mapStyle={mapStyle}
-            mapboxApiAccessToken={MAPBOX_TOKEN}
-            onLoad={this.handleLoadStaticMap}
+        { renderableLayer.length !== 0 && <LayerManager
+          _updateConfig={this.handleUpdateConfig}
+          _changeMapStyle={this.handleChangeMapStyle}
+          _updateLayer={this.handleUpdateLayer}
+          layerOptions={renderableLayer}>
+        </LayerManager>}
+        { reloading ? <div></div> :
+          <DeckGL
+            ref={ref => { this.deckGl = ref }}
+            initialViewState={initialViewState}
+            controller={true}
+            layers={renderLayers()}
           >
-          </StaticMap>
-        </DeckGL>
+            <StaticMap
+              ref={ref => { this.staticMap = ref && ref.getMap() }}
+              mapStyle={mapStyle}
+              mapboxApiAccessToken={MAPBOX_TOKEN}
+              onLoad={this.handleLoadStaticMap}
+            >
+            </StaticMap>
+          </DeckGL>
+        }
       </Fragment>
     )
   }
