@@ -1,0 +1,26 @@
+.layer-manager{
+  display: inline-block;
+  left: 10px;
+  padding: 8px;
+  position: absolute;
+  top: 15px;
+  z-index: 4;
+  .panel-obj {
+    margin-bottom: 10px;
+  }
+
+  background-color: rgba($color: #000000, $alpha: 0.75);
+  width: 250px;
+  height: 500px;
+  color: azure;
+
+  &__header {
+    font-size: large;
+    text-align: center;
+  }
+
+  &__body {
+    font-size: smaller;
+    padding: 10px;
+  }
+}
