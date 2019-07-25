@@ -31,7 +31,6 @@ class MyMap extends Component {
       { id: 'grid-cell-layer', label: 'Grid cell layer' },
       { id: 'scatterplot-layer', label: 'Scatter plot layer' }
     ]
-    // const renderableLayer = this.getLayerOptions(layers)
     this.setState(() => ({renderableLayer: layers, reloading: false}))
   }
 
@@ -83,7 +82,10 @@ class MyMap extends Component {
       visibleLayer.gridCellLayer ?
         new GridCellLayer({
           id: 'grid-cell-layer',
-          data: [{ point: [-122.41669, 37.7853], value: 100 }, { point: [-122.42669, 37.7853], value: 50 }],
+          data: [
+            { point: [-122.41669, 37.7853], value: 100 }, 
+            { point: [-122.42669, 37.7853], value: 50 }
+          ],
           visible: true,
           pickable: true,
           extruded: false,
