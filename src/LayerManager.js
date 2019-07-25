@@ -95,9 +95,7 @@ export class LayerManager extends Component {
                 {layer.label}
               </button>
             </div>
-            )
-          })
-
+            )})
           }
         </div>
       </div>
